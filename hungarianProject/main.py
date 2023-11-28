@@ -83,7 +83,7 @@ def calculate_hungarian():
 
         RowDecrease(cost_matrix, m, n)
         ColumnDecrease(cost_matrix, n, m)
-        FindSubZeros(cost_matrix, m, n)
+        FindLines(cost_matrix, m, n)
 
         if checkbox_var.get():
             maxValue = cost_matrix.max()
@@ -113,7 +113,7 @@ def calculate_hungarian():
         messagebox.showerror("Hata", "Lütfen geçerli bir sayı girin.")
 
 
-def FindSubZeros(cost_matrix, m, n):
+def FindLines(cost_matrix, m, n):
     emanuelList = []  # X,Y,IsMarked,XCount,YCount
     lineCount = 0
     chosenZeros = []
@@ -151,7 +151,8 @@ def FindSubZeros(cost_matrix, m, n):
                         emanuelList[k][2] = True
             lineCount += 1
     # çizgiler bulundu, sıfırları bulucaz.
-    if (lineCount >= m):
+    #Find sibgle zeros
+    if lineCount >= m:
         for i in range(len(emanuelList)):  # tüm markable değerlerini false'a çektik
             emanuelList[i][2] = False
 
@@ -165,8 +166,6 @@ def FindSubZeros(cost_matrix, m, n):
                     for j in range(len(emanuelList)):  # seçilen sıfırın satı ve sütunundaki düğer sıfırları kilitliyor
                         if (emanuelList[j][0] == emanuelList[i][0]) | (emanuelList[j][1] == emanuelList[i][1]):
                             emanuelList[j][2] = True
-
-
     else:
         print("optimize değil")
 
