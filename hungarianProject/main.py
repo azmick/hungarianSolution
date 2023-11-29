@@ -70,31 +70,46 @@ def SumResult(list):
 def calculate_hungarian():
     global is_okkey
     try:
-        n = int(entry_rows.get())
-        m = int(entry_columns.get())
+        r = int(entry_rows.get())
+        c = int(entry_columns.get())
+        fake_c = 0
+        fake_r = 0
 
-        cost_matrix = np.zeros((n, m), dtype=int)
-        default_matrix = np.zeros((n, m), dtype=int)
+        if c > r:
+            fake_r = c
+            fake_c = c
+        else:
+            fake_c = r
+            fake_r = r
 
-        for i in range(n):
-            for j in range(m):
+        cost_matrix = np.zeros((fake_r, fake_c), dtype=int)
+        default_matrix = np.zeros((fake_r, fake_c), dtype=int)
+
+        for i in range(r):
+            for j in range(c):
                 cost_matrix[i, j] = int(matrix_entries[i][j].get())
                 default_matrix[i, j] = int(matrix_entries[i][j].get())
 
         if checkbox_var.get():
             maxValue = cost_matrix.max()
-            for i in range(n):
-                for j in range(m):
+            for i in range(r):
+                for j in range(c):
                     if cost_matrix[i, j] != -1:
                         cost_matrix[i, j] = maxValue - int(matrix_entries[i][j].get())
                     else:
                         cost_matrix[i, j] = 999999999
+        else:
+            for i in range(r):
+                for j in range(c):
+                    if cost_matrix[i, j] == -1:
+                        cost_matrix[i, j] = 999999999
 
+        r = fake_r
+        c = fake_c
         # Macar Çözümü
-        RowDecrease(cost_matrix, m, n)
-        ColumnDecrease(cost_matrix, n, m)
-        result_matrix = FindLines(cost_matrix, m, n, default_matrix)
-        print(result_matrix)
+        RowDecrease(cost_matrix, c, r)
+        ColumnDecrease(cost_matrix, r, c)
+        result_matrix = FindLines(cost_matrix, c, r, default_matrix)
         # Sonuç matrisini oluştur ve görüntüle
 
         result_label.config(text="Sonuç Matrisi:\n" + str(result_matrix), fg="white", borderwidth=3, relief="groove")
@@ -107,71 +122,98 @@ def calculate_hungarian():
         messagebox.showerror("Hata", "Lütfen geçerli bir sayı girin.")
 
 
+chosenZeros = []
+
+
 def FindLines(cost_matrix, m, n, default_matrix):
-    emanuelList = []  # X,Y,IsMarked,XCount,YCount
+    allZerosList = []  # fill allZerosList list // # X,Y,IsMarked,XCount,YCount, lineX, lineY
     lineCount = 0
-    chosenZeros = []
+
     for i in range(n):
         for j in range(m):
             if (cost_matrix[i][j] == 0):
-                emanuelList.append([i, j, False, 0, 0])
-    for i in range(len(emanuelList)):  # tüm sıfırları tek tek dön
+                allZerosList.append([i, j, False, 0, 0, 0, 0])  # fill allZerosList list
+    for i in range(len(allZerosList)):  # tüm sıfırları tek tek dön
         yCount = 0
         xCount = 0
-        for j in range(len(emanuelList)):  # bir adet sıfır için satır ve sütundaki toplam sıfır değerlerini bul
-            if (emanuelList[i][1] == emanuelList[j][1]):
+        for j in range(len(allZerosList)):  # bir adet sıfır için satır ve sütundaki toplam sıfır değerlerini bul
+            if (allZerosList[i][1] == allZerosList[j][1]):
                 yCount += 1
-            if (emanuelList[i][0] == emanuelList[j][0]):
+            if (allZerosList[i][0] == allZerosList[j][0]):
                 xCount += 1
-        emanuelList[i][3] = xCount
-        emanuelList[i][4] = yCount
+        allZerosList[i][3] = xCount
+        allZerosList[i][4] = yCount
 
-    for i in range(len(emanuelList)):  # tüm sıfırları tek tek dön
+    for i in range(len(allZerosList)):  # tüm sıfırları tek tek dön
         yCount = 0
         xCount = 0
-        if (emanuelList[i][2] != True):  # if unmark
-            # for j in range(len(emanuelList)): # bir adet sıfır için satır ve sütundaki toplam sıfır değerlerini bul
-            #    if (emanuelList[i][1] == emanuelList[j][1]):
-            #        yCount += 1
-            #    if (emanuelList[i][0] == emanuelList[j][0]):
-            #        xCount += 1
-            if emanuelList[i][4] > emanuelList[i][3]:
-                for k in range(len(emanuelList)):
-                    if emanuelList[i][1] == emanuelList[k][1]:
-                        emanuelList[k][2] = True
-            else:
-                for k in range(len(emanuelList)):
-                    if emanuelList[i][0] == emanuelList[k][0]:
-                        emanuelList[k][2] = True
+        if allZerosList[i][2] != True:  # if unmark
+            if allZerosList[i][4] > allZerosList[i][
+                3]:  # Y ekseni (sütun kontrolü)  # 0'ların eksenlerindeki 0 sayılarını karşılaştır
+                for k in range(len(allZerosList)):
+                    if allZerosList[i][1] == allZerosList[k][1]:
+                        allZerosList[k][2] = True
+                        allZerosList[k][6] = 1
+            else:  # X ekseni (satır kontrolü)
+                for k in range(len(allZerosList)):
+                    if allZerosList[i][0] == allZerosList[k][0]:
+                        allZerosList[k][2] = True
+                        allZerosList[k][5] = 1
+
             lineCount += 1
     # çizgiler bulundu, sıfırları bulucaz.
     # Find single zeros
-    FindSingleZeros(chosenZeros, emanuelList, lineCount, m)
+    FindSingleZeros(cost_matrix, default_matrix, allZerosList, lineCount, m)  # fill the chozenZeros list
 
     # sıfırların konumunu bulduk
-    return FindResultMatrix(chosenZeros, default_matrix, m, n)
+    return FindResultMatrix(default_matrix, m, n)
 
 
-def FindSingleZeros(chosenZeros, emanuelList, lineCount, m):
+def FindSingleZeros(cost_matrix, default_matrix, allZerosList, lineCount, m):
     if lineCount >= m:
-        for i in range(len(emanuelList)):  # tüm markable değerlerini false'a çektik
-            emanuelList[i][2] = False
+        for i in range(len(allZerosList)):  # tüm markable değerlerini false'a çektik
+            allZerosList[i][2] = False
 
         for k in range(m):
-            for i in range(len(emanuelList)):  # satır veya sütünda sadece bir tane bulunan sıfırları tek tek alma kısmı
-                if emanuelList[i][2]:
+            for i in range(
+                    len(allZerosList)):  # satır veya sütünda sadece bir tane bulunan sıfırları tek tek alma kısmı
+                if allZerosList[i][2]:
                     continue
-                if (emanuelList[i][3] == (k + 1)) | (emanuelList[i][4] == (k + 1)):
-                    emanuelList[i][2] = True
-                    chosenZeros.append([emanuelList[i][0], emanuelList[i][1]])
-                    for j in range(len(emanuelList)):  # seçilen sıfırın satı ve sütunundaki düğer sıfırları kilitliyor
-                        if (emanuelList[j][0] == emanuelList[i][0]) | (emanuelList[j][1] == emanuelList[i][1]):
-                            emanuelList[j][2] = True
+                if (allZerosList[i][3] == (k + 1)) | (allZerosList[i][4] == (k + 1)):
+                    allZerosList[i][2] = True
+                    chosenZeros.append([allZerosList[i][0], allZerosList[i][1]])
+                    for j in range(len(allZerosList)):  # seçilen sıfırın satı ve sütunundaki düğer sıfırları kilitliyor
+                        if (allZerosList[j][0] == allZerosList[i][0]) | (allZerosList[j][1] == allZerosList[i][1]):
+                            allZerosList[j][2] = True
     else:
-        print("optimize değil")
+        emanuelList = []
+        for x in range(m):
+            for y in range(m):
+                counter = 0
+                foundX = False
+                foundY = False
+                for k in allZerosList:
+                    if (k[0] == x) & (k[5] == 1) & (not foundX):
+                        counter += 1
+                        foundX = True
+                    if (k[1] == y) & (k[6] == 1) & (not foundY):
+                        counter += 1
+                        foundY = True
+                emanuelList.append([cost_matrix[x][y], x, y, counter])
+        emanuelList.sort(key=lambda xx: (xx[3], xx[0]))
+        minValue = emanuelList[0][0]
+        for item in emanuelList:
+            if item[3] == 0:
+                item[0] -= minValue
+            if item[3] == 2:
+                item[0] += minValue
+        for item in emanuelList:
+            cost_matrix[item[1]][item[2]] = item[0]
+
+        FindLines(cost_matrix, m, m, default_matrix)
 
 
-def FindResultMatrix(chosenZeros, default_matrix, m, n):
+def FindResultMatrix(default_matrix, m, n):
     result_matrix = np.zeros((n, m), dtype=int)
     for i in range(len(chosenZeros)):
         result_matrix[chosenZeros[i][0]][chosenZeros[i][1]] = default_matrix[chosenZeros[i][0]][chosenZeros[i][1]]
